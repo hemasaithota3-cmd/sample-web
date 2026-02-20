@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+    body {
+        background-color: #d6d5de;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .login {
+        width: 100%;
+        max-width: 400px;
+        margin: 60px auto;
+        padding: 25px;
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+
+    h1 {
+        text-align: center;
+        color: rgb(116, 52, 189);
+        margin-bottom: 20px;
+        font-size: 22px;
+    }
+
+    label {
+        font-weight: bold;
+    }
+
+    input {
+        width: 100%;
+        padding: 10px;
+        margin-top: 5px;
+        border: 2px solid rgb(116, 52, 189);
+        border-radius: 25px;
+        box-sizing: border-box;
+    }
+
+    button {
+        width: 100%;
+        margin-top: 20px;
+        padding: 10px;
+        background-color: rgb(255, 31, 31);
+        color: white;
+        border-radius: 10px;
+        cursor: pointer;
+        border: none;
+        font-size: 16px;
+    }
+
+    button:hover {
+        background-color: #fff;
+        color: rgb(255, 31, 31);
+        border: 1px solid rgb(255, 31, 31);
+    }
+
+    .password-box {
+        position: relative;
+    }
+
+    .eye {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        font-size: 18px;
+    }
+
+    .error {
+        color: red;
+        font-size: 14px;
+        margin-top: 10px;
+        text-align: center;
+    }
+
+    .link {
+        text-align: center;
+        margin-top: 15px;
+        font-size: 14px;
+    }
+
+    /* Extra mobile improvement */
+    @media (max-width: 480px) {
+        .login {
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 18px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="login">
+    <h1>⚡welcome to Zepto clone</h1>
+    <h1>Registration</h1>
+
+    <!-- ✅ IMPORTANT: Flask form -->
+    <form method="POST" action="/register" onsubmit="return validateForm()">
+
+        <label>Username</label>
+        <input type="text" name="name" id="username" placeholder="enter username">
+
+        <br><br>
+
+        <label>Email</label>
+        <input type="email" name="email" id="email" placeholder="enter email">
+
+        <br><br>
+
+        <label>Password</label>
+        <div class="password-box">
+            <input type="password" name="password" id="password" placeholder="enter password">
+            <span class="eye" onclick="togglePassword()">👁️</span>
+        </div>
+
+        <p class="error" id="error">
+            {% if error %}
+                {{ error }}
+            {% endif %}
+        </p>
+
+        <button type="submit"><b>Register</b></button>
+    </form>
+
+    <div class="link">
+        Already have an account?
+        <a href="/login">Login</a>
+    </div>
+</div>
+
+<script>
+function validateForm() {
+    const username = document.getElementById("username").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const error = document.getElementById("error");
+
+    error.textContent = "";
+
+    if (!username || !email || !password) {
+        error.textContent = "All fields are required";
+        return false;
+    }
+
+    if (password.length < 6) {
+        error.textContent = "Password must be at least 6 characters";
+        return false;
+    }
+
+    return true; // ✅ allow form to submit to Flask
+}
+
+function togglePassword() {
+    const password = document.getElementById("password");
+    const eye = document.querySelector(".eye");
+
+    if (password.type === "password") {
+        password.type = "text";
+        eye.textContent = "🙈";
+    } else {
+        password.type = "password";
+        eye.textContent = "👁️";
+    }
+}
+</script>
+
+</body>
+</html>

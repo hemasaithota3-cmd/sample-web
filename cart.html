@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Cart</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <style>
+        
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        
+        .navbar {
+            background-color: #333;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-right: 20px;
+            font-size: 18px;
+        }
+
+        .navbar a:hover {
+            color: #ffd700;
+        }
+
+        .navbar button {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: auto;
+        }
+        .navbar button:hover {
+            background-color:white;
+            color:red;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .cart-container {
+           width: 95%;
+    max-width: 800px;
+    margin: 20px auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+        }
+
+        .cart-item {
+          display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+        }
+
+        .cart-item button {
+            padding: 6px 10px;
+    border-radius: 4px;
+    border: none;
+    background: #eee;
+        }
+
+        .total {
+            text-align: right;
+            font-size: 20px;
+            margin-top: 20px;
+        }
+
+        .shop-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background: green;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            border:1px solid;
+        }
+        .buy-btn{
+             display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background:rgb(116, 52, 189);
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            border:1px solid;
+        }
+        .buy-btn:hover{
+            background-color:white;
+            color:red;
+
+        }
+        .shop-btn:hover{
+            background-color:white;
+            color:green;
+
+        }
+        #addressModal div {
+    width: 90%;
+    max-width: 400px;
+    margin: 80px auto;
+}
+/* Add this to your CSS */
+.cart-item img {
+    width: 70px;            /* Fixed size for the thumbnail */
+    height: 70px;
+    object-fit: contain;    /* Prevents the image from stretching */
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    margin-right: 15px;     /* Space between image and text */
+}
+
+/* Ensure the text and image stay side-by-side */
+.cart-item-info {
+    display: flex;
+    align-items: center;
+    flex: 1;                /* Takes up available space */
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+
+    .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .navbar button {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .cart-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .total {
+        text-align: left;
+        font-size: 18px;
+    }
+}
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/">Home</a>
+    <button onclick="logoutUser()">Logout</button>
+</div>
+
+<h1>My Cart 🛒</h1>
+
+<div class="cart-container" id="cart-items"></div>
+
+<div class="cart-container total">
+    Total: ₹<span id="total">0</span>
+</div>
+
+<button class="shop-btn" onclick="location.href='/'">
+    Continue Shopping
+</button>
+<button class="buy-btn" onclick="openAddressForm()">Buy now</button>
+<div id="addressModal" style="display:none; 
+position:fixed; top:0; left:0; width:100%; height:100%; 
+background:rgba(0,0,0,0.5);">
+
+    <div style="background:white; width:300px; margin:100px auto; padding:20px; border-radius:10px;">
+        <h3>Enter Delivery Address</h3>
+
+        <input type="text" id="custName" placeholder="Your Name" style="width:100%; margin-bottom:10px; padding:6px;">
+        <input type="text" id="custPhone" placeholder="Phone Number" style="width:100%; margin-bottom:10px; padding:6px;">
+        <textarea id="custAddress" placeholder="Full Address" style="width:100%; padding:6px;"></textarea>
+
+        <br><br>
+
+        <button onclick="sendToWhatsApp()">Confirm Order</button>
+        <button onclick="closeAddressForm()">Cancel</button>
+    </div>
+</div>
+
+<script>
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const cartDiv = document.getElementById("cart-items");
+
+    function displayCart() {
+    cartDiv.innerHTML = "";
+    let total = 0;
+
+    cart.forEach((item, index) => {
+        total += item.price * item.quantity;
+
+       cartDiv.innerHTML += `
+    <div class="cart-item">
+        <div class="cart-item-info">
+            <img src="${item.image}" alt="${item.name}">
+            
+            <div>
+                <strong>${item.name}</strong><br>
+                ₹${item.price} x ${item.quantity}
+            </div>
+        </div>
+
+        <div>
+            <button onclick="changeQty(${index}, -1)">-</button>
+            ${item.quantity}
+            <button onclick="changeQty(${index}, 1)">+</button>
+            <button onclick="removeItem(${index})">❌</button>
+        </div>
+    </div>
+`;
+    });
+
+    document.getElementById("total").textContent = total;
+    document.getElementById("hiddenTotal").value = total;
+    document.getElementById("hiddenItems").value = JSON.stringify(cart);
+   // ⭐ VERY IMPORTANT
+    localStorage.setItem("cart", JSON.stringify(cart));
+}
+function clearCart() {
+    localStorage.removeItem("cart");
+}
+
+
+
+    function changeQty(index, value) {
+        cart[index].quantity += value;
+        if (cart[index].quantity <= 0) {
+            cart.splice(index, 1);
+        }
+        displayCart();
+    }
+
+    function removeItem(index) {
+        cart.splice(index, 1);
+        displayCart();
+    }
+
+    displayCart();
+    function logoutUser() {
+    localStorage.removeItem("cart");
+    window.location.href = "/logout";
+}
+
+
+
+function openAddressForm() {
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    if (cart.length === 0) {
+        alert("Cart is empty!");
+        return;
+    }
+
+    document.getElementById("addressModal").style.display = "block";
+}
+
+function closeAddressForm() {
+    document.getElementById("addressModal").style.display = "none";
+}
+
+function sendToWhatsApp() {
+
+    let name = document.getElementById("custName").value;
+    let phone = document.getElementById("custPhone").value;
+    let address = document.getElementById("custAddress").value;
+
+    if (!name || !phone || !address) {
+        alert("Please fill all details");
+        return;
+    }
+
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    let message = "🛒 *New Order* %0A%0A";
+
+    let total = 0;
+
+    cart.forEach(item => {
+        message += item.name + " - ₹" + item.price + " x " + item.quantity + "%0A";
+        total += item.price * item.quantity;
+    });
+
+    message += "%0ATotal: ₹" + total;
+    message += "%0A%0A👤 Name: " + name;
+    message += "%0A📞 Phone: " + phone;
+    message += "%0A🏠 Address: " + address;
+
+    // 🔥 Replace with your WhatsApp number
+    let phoneNumber = "917794968859";
+
+    let url = "https://wa.me/" + phoneNumber + "?text=" + message;
+
+    localStorage.removeItem("cart");
+
+    window.open(url, "_blank");
+
+    closeAddressForm();
+}
+
+</script>
+</script>
+
+</body>
+</html>

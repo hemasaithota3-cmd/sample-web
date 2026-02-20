@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <title>Navbar with Products</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta http-equiv="Cache-Control" content="no-store" />
+
+   <style>
+    /* 1. GLOBAL FIX: This ensures padding doesn't add to the width */
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+    }
+
+    /* NAVBAR */
+    .navbar {
+        background-color: #333;
+        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap; /* Allows wrapping on small phones */
+    }
+
+    .navbar a { color: white; text-decoration: none; margin-right: 20px; }
+    
+    /* Pushes search and buttons to the right */
+    .navbar input {
+        padding: 6px;
+        border-radius: 4px;
+        border: none;
+        margin-left: auto; 
+        margin-right: 10px;
+        width: 150px;
+    }
+
+    .navbar button {
+        background-color: red;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-left: 5px;
+    }
+
+    .navbar img { width: 45px; margin-right: 15px; }
+
+    /* CONTAINER */
+    .container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        padding: 20px;
+        justify-content: center;
+    }
+
+    /* PRODUCT CARD: Forced to same height and width */
+    .product {
+        background: white;
+        border-radius: 15px;
+        padding: 15px;
+        text-align: center;
+        border: 2px solid #ddd;
+        transition: transform 0.4s ease;
+        
+        /* Flexbox magic to align internal items */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between; 
+        
+        /* Desktop size */
+        flex: 0 0 250px; 
+        height: 420px; 
+    }
+
+    .product img {
+        width: 100%;
+        height: 150px;       /* Fixed height for all images */
+        object-fit: contain;  /* Prevents stretching */
+        margin-bottom: 10px;
+    }
+
+    .product h1 {
+        font-size: 16px;
+        margin: 10px 0;
+        flex-grow: 1; /* Pushes the button to the bottom */
+    }
+
+    .product button {
+        background: linear-gradient(to right, #ff9800, #ff5722);
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 25px;
+        cursor: pointer;
+        width: 100%; /* Makes button uniform width */
+    }
+
+    /* MOBILE VIEW: 2 Items per row */
+    @media (max-width: 768px) {
+        .container {
+            gap: 10px; /* Smaller gap on mobile */
+            padding: 10px;
+        }
+
+        .product {
+            /* 50% width minus half the gap (10px / 2 = 5px) */
+            flex: 0 0 calc(50% - 5px); 
+            max-width: calc(50% - 5px);
+            height: 380px; /* Slightly shorter for mobile */
+            padding: 10px;
+        }
+
+        .product img {
+            height: 120px; /* Smaller images on mobile */
+        }
+
+        .product h1 {
+            font-size: 14px;
+        }
+
+        .navbar input {
+            order: 1;
+            width: 100%;
+            margin: 10px 0;
+        }
+    }
+</style>
+
+</head>
+
+<body>
+
+
+
+    <div class="navbar">
+
+        <img src="C:\Users\hemas\Pictures\Screenshots\Screenshot 2026-01-31 135632.png" alt="logo">
+
+        <a href="#">Home</a>
+
+        <input type="text" placeholder="Search..." id="searchinput" onkeyup="searchitem()">
+
+        <button onclick="logoutUser()">Logout</button>
+
+        <button  type="button" onclick="location.href='/cart'">🛒 my Cart</button>
+
+    </div>
+
+
+
+    <div class="container">
+
+        <div class="product">
+
+            <img src="{{ url_for('static', filename='images/Brown-eggs.webp') }}" alt="Eggs">
+
+            <h1><i>Eggs<br>₹10 each</i></h1>
+
+            <h6>-2% dicount you won</h6>
+
+            <button class="add-to-cart" data-name="Eggs" data-price="10" >Add to Cart</button>
+
+        </div>
+
+
+
+        <div class="product">
+
+          <img src="{{ url_for('static', filename='images/rice.webp') }}" alt="rice">
+
+            <h1><i>soft drinks<br>₹150 each
+
+            </i></h1>
+
+            <h6>-25%discount you won</h6>
+
+            <button class="add-to-cart" data-name="drinks" data-price="150" >Add to Cart</button>
+
+        </div>
+
+        <div class="product">
+
+          <img src="{{ url_for('static', filename='images/OIP.jpg') }}" alt="surf-excel">
+
+            <h6>-20%discount you won</h6>
+
+            <button class="add-to-cart" data-name="surf excel" data-price="110">Add to cart</button>
+
+        </div>
+
+        <div class="product">
+
+             <img src="{{ url_for('static', filename='images/rice.webp') }}" alt="rice">
+
+            <h1><i>sona masoori 25kg bag<br>₹2000 </i></h1>
+
+            <h6>-20%discount you won</h6>
+
+            <button class="add-to-cart" data-name="rice" data-price="2000">Add to cart</button>
+
+        </div>
+
+         <div class="product">
+
+            <img src="https://ueirorganic.com/cdn/shop/files/purecowghee.jpg?v=1689066451" alt="pure ghee">
+
+            <h1><i>sasi ghee 1litre pack<br>₹3000 </i></h1>
+
+            <h6>-10%discount you won</h6>
+
+            <button class="add-to-cart" data-name="sasi-ghee" data-price="3000">Add to cart</button>
+
+        </div>
+
+        <div class="product">
+
+            <img src="https://media.istockphoto.com/id/626118394/photo/group-of-plastic-bottles-with-palm-oil.jpg?s=612x612&w=0&k=20&c=YcWUxXkgWRvBW_7eQUKlblxmqtRzcVPnZpBVL9tlQ9Y=" alt="palm oil">
+
+            <h1><i>sasi refined palmoil 1litre pack<br>₹180 </i></h1>
+
+            <h6>-5%discount you won</h6>
+
+            <button class="add-to-cart" data-name="sasi-palmoil" data-price="180">Add to cart</button>
+
+        </div>
+
+        <div class="product">
+
+            <img src="https://m.media-amazon.com/images/I/713ygtL7QiL.jpg" alt="palm oil">
+
+            <h1><i>sasi breads<br>₹90 </i></h1>
+
+            <h6>-5%discount you won</h6>
+
+            <button class="add-to-cart" data-name="sasi breads" data-price="90">Add to cart</button>
+
+        </div>
+
+         <div class="product">
+
+            <img src="{{ url_for('static', filename='images/ChatGPT Image Feb 14, 2026, 02_21_26 PM.png') }}" alt="milk">
+
+            <h1><i>sasi milk 1litre pack<br>₹35 </i></h1>
+
+            <h6>-2%discount you won</h6>
+
+            <button class="add-to-cart" data-name="sasi milk" data-price="35">Add to cart</button>
+
+        </div>
+
+       
+
+       
+
+    </div>
+
+   <script>
+
+    function searchitem(){
+
+        let input=document.getElementById("searchinput").value.toLowerCase();
+
+        let item=document.querySelectorAll(".product");
+
+        for (let i=0; i<item.length; i++){
+
+            let text=item[i].textContent.toLowerCase();
+
+            if(text.includes(input)){
+
+                item[i].style.display="";
+
+            }
+
+            else{
+
+                item[i].style.display="none";
+
+            }
+
+        }
+
+
+
+    }
+
+    // Load existing cart from localStorage
+
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+
+
+    const buttons = document.querySelectorAll(".add-to-cart");
+
+
+
+    buttons.forEach(btn => {
+
+        btn.addEventListener("click", () => {
+
+            const name = btn.dataset.name;
+
+            const price = Number(btn.dataset.price);
+
+
+
+            // Check if product already exists
+
+            let existingItem = cart.find(item => item.name === name);
+
+
+
+            if (existingItem) {
+
+                existingItem.quantity += 1;   // increase quantity
+
+            } else {
+
+                cart.push({
+
+                    name: name,
+
+                    price: price,
+
+                     image: btn.closest(".product").querySelector("img").src,
+
+                    quantity: 1
+
+                });
+
+            }
+
+
+
+            localStorage.setItem("cart", JSON.stringify(cart));
+
+            alert(name + " added to cart!");
+
+        });
+
+    });
+
+    function logoutUser() {
+
+    localStorage.removeItem("cart");
+
+    window.location.href = "/logout";
+
+}
+
+</script>
+</body></html>
