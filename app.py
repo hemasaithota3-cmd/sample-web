@@ -2,21 +2,17 @@ from flask import Flask, render_template, request, redirect, session, url_for
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
+import datetime
 
 app = Flask(__name__, static_folder='public')
-app.secret_key = os.environ.get("SECRET_KEY", "devsecretkey")  # Use Render secret for production
+app.secret_key = os.environ.get("SECRET_KEY", "devsecretkey")
 
 # ----------------- DATABASE -----------------
 def init_db():
     conn = sqlite3.connect('orders.db')
     cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS orders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            items TEXT,
-            total INTEGER
-        )
-    ''')
+
+    # USERS
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,34 +22,50 @@ def init_db():
             is_admin INTEGER DEFAULT 0
         )
     ''')
+
+    # ORDERS
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            items TEXT,
+            total INTEGER,
+            status TEXT DEFAULT 'Pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    ''')
+
     conn.commit()
     conn.close()
 
 init_db()
 
-# ----------------- ROUTES -----------------
+# ----------------- HOME -----------------
 @app.route('/')
 def home():
     if 'user_id' not in session:
         return redirect('/login')
-    return render_template('product.html')
+    return render_template('product.html', user=session.get('user_name'))
 
+# ----------------- CART -----------------
 @app.route('/cart')
 def cart():
     if 'user_id' not in session:
         return redirect('/login')
     return render_template('cart.html')
 
+# ----------------- REGISTER -----------------
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if 'user_id' in session:
-        return redirect('/')
     if request.method == 'POST':
         name = request.form['name']
         email = request.form['email']
         password = generate_password_hash(request.form['password'])
+
         conn = sqlite3.connect('orders.db')
         cursor = conn.cursor()
+
         try:
             cursor.execute(
                 "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
@@ -63,22 +75,25 @@ def register():
         except:
             conn.close()
             return render_template("register.html", error="Email already exists")
+
         conn.close()
         return redirect('/login')
+
     return render_template('register.html')
 
+# ----------------- LOGIN -----------------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'user_id' in session:
-        return redirect('/')
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+
         conn = sqlite3.connect('orders.db')
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM users WHERE email=?", (email,))
         user = cursor.fetchone()
         conn.close()
+
         if user and check_password_hash(user[3], password):
             session['user_id'] = user[0]
             session['user_name'] = user[1]
@@ -86,25 +101,101 @@ def login():
             return redirect('/')
         else:
             return render_template("login.html", error="Invalid email or password")
+
     return render_template("login.html")
 
+# ----------------- LOGOUT -----------------
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect('/login')
 
+# ----------------- PLACE ORDER -----------------
 @app.route('/place_order', methods=['POST'])
 def place_order():
     if 'user_id' not in session:
         return redirect('/login')
+
     total = request.form.get('total')
     items = request.form.get('items')
+    user_id = session['user_id']
+
+    # Simulated Payment Success
+    payment_status = "Success"
+
+    if payment_status == "Success":
+        conn = sqlite3.connect('orders.db')
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "INSERT INTO orders (user_id, items, total) VALUES (?, ?, ?)",
+            (user_id, items, total)
+        )
+
+        conn.commit()
+        conn.close()
+
+        print(f"📧 Email sent to {session['user_name']} - Order Confirmed!")
+
+        return render_template("order_success.html")
+
+    return "Payment Failed"
+
+# ----------------- USER ORDER HISTORY -----------------
+@app.route('/my_orders')
+def my_orders():
+    if 'user_id' not in session:
+        return redirect('/login')
+
     conn = sqlite3.connect('orders.db')
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO orders (items, total) VALUES (?, ?)", (items, total))
+
+    cursor.execute(
+        "SELECT id, items, total, status, created_at FROM orders WHERE user_id=? ORDER BY created_at DESC",
+        (session['user_id'],)
+    )
+
+    orders = cursor.fetchall()
+    conn.close()
+
+    return render_template('my_orders.html', orders=orders)
+
+# ----------------- ADMIN DASHBOARD -----------------
+@app.route('/admin')
+def admin_dashboard():
+    if 'user_id' not in session or session.get('is_admin') != 1:
+        return redirect('/')
+
+    conn = sqlite3.connect('orders.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT orders.id, users.name, users.email, orders.items, orders.total, orders.status, orders.created_at
+        FROM orders
+        JOIN users ON orders.user_id = users.id
+        ORDER BY orders.created_at DESC
+    ''')
+
+    orders = cursor.fetchall()
+    conn.close()
+
+    return render_template('admin.html', orders=orders)
+
+# ----------------- UPDATE ORDER STATUS (ADMIN) -----------------
+@app.route('/update_status/<int:order_id>', methods=['POST'])
+def update_status(order_id):
+    if 'user_id' not in session or session.get('is_admin') != 1:
+        return redirect('/')
+
+    new_status = request.form.get('status')
+
+    conn = sqlite3.connect('orders.db')
+    cursor = conn.cursor()
+    cursor.execute("UPDATE orders SET status=? WHERE id=?", (new_status, order_id))
     conn.commit()
     conn.close()
-    return render_template("order_success.html")
+
+    return redirect('/admin')
 
 # ----------------- RUN -----------------
 if __name__ == "__main__":
