@@ -201,3 +201,11 @@ def update_status(order_id):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+@app.route('/make_admin')
+def make_admin():
+    conn = sqlite3.connect('orders.db')
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET is_admin=1 WHERE id=1")
+    conn.commit()
+    conn.close()
+    return "Admin updated"
