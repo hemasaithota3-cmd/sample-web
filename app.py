@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify
+from functools import wraps
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
@@ -7,9 +8,12 @@ import datetime
 app = Flask(__name__, static_folder='public')
 app.secret_key = os.environ.get("SECRET_KEY", "devsecretkey")
 
+# ----------------- DB PATH (use /tmp so Render doesn't wipe it on redeploy) -----------------
+DB_PATH = os.environ.get("DB_PATH", "/tmp/orders.db")
+
 # ----------------- DATABASE -----------------
 def init_db():
-    conn = sqlite3.connect('orders.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     # USERS
@@ -37,6 +41,13 @@ def init_db():
         )
     ''')
 
+    # Safely add is_banned column if upgrading from old DB
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0")
+        conn.commit()
+    except:
+        pass  # Column already exists, ignore
+
     conn.commit()
     conn.close()
 
@@ -44,12 +55,11 @@ init_db()
 
 # ----------------- HELPERS -----------------
 def get_db():
-    conn = sqlite3.connect('orders.db')
-    conn.row_factory = sqlite3.Row
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row  # Access columns by name e.g. user['email']
     return conn
 
 def admin_required(f):
-    from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'user_id' not in session or session.get('is_admin') != 1:
@@ -58,7 +68,6 @@ def admin_required(f):
     return decorated
 
 def login_required(f):
-    from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
@@ -66,14 +75,14 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ----------------- MAKE ADMIN (keep your original) -----------------
+# ----------------- MAKE ADMIN -----------------
 @app.route('/make_admin')
 def make_admin():
     conn = get_db()
     conn.execute("UPDATE users SET is_admin=1 WHERE email='hemasaithota3@gmail.com'")
     conn.commit()
     conn.close()
-    return "You are now admin"
+    return "You are now admin. Please logout and login again."
 
 # ----------------- HOME -----------------
 @app.route('/')
@@ -102,7 +111,7 @@ def register():
                 (name, email, password)
             )
             conn.commit()
-        except:
+        except Exception:
             conn.close()
             return render_template("register.html", error="Email already exists")
         conn.close()
@@ -157,7 +166,7 @@ def place_order():
         )
         conn.commit()
         conn.close()
-        print(f"📧 Email sent to {session['user_name']} - Order Confirmed!")
+        print(f"Email sent to {session['user_name']} - Order Confirmed!")
         return render_template("order_success.html")
 
     return "Payment Failed"
@@ -180,7 +189,6 @@ def my_orders():
 def admin_dashboard():
     conn = get_db()
 
-    # Orders with search/filter support
     search = request.args.get('search', '').strip()
     status_filter = request.args.get('status', '').strip()
 
@@ -204,7 +212,7 @@ def admin_dashboard():
     query += " ORDER BY orders.created_at DESC"
     orders = conn.execute(query, params).fetchall()
 
-    # Analytics
+    # Analytics summary
     analytics = conn.execute('''
         SELECT
             COUNT(*) as total_orders,
@@ -273,7 +281,7 @@ def admin_users():
             "SELECT id, name, email, is_admin, is_banned FROM users"
         ).fetchall()
 
-    # Per-user order count & spend
+    # Per-user order count & total spend
     user_stats = {}
     for u in users:
         stats = conn.execute(
@@ -290,7 +298,6 @@ def admin_users():
 @admin_required
 def delete_user(user_id):
     conn = get_db()
-    # Delete user's orders first (foreign key)
     conn.execute("DELETE FROM orders WHERE user_id=?", (user_id,))
     conn.execute("DELETE FROM users WHERE id=?", (user_id,))
     conn.commit()
@@ -313,8 +320,7 @@ def ban_user(user_id):
 @app.route('/toggle_admin/<int:user_id>', methods=['POST'])
 @admin_required
 def toggle_admin(user_id):
-    # Prevent removing own admin
-    if user_id == session['user_id']:
+    if user_id == session['user_id']:  # Prevent removing own admin
         return redirect('/admin_users')
     conn = get_db()
     user = conn.execute("SELECT is_admin FROM users WHERE id=?", (user_id,)).fetchone()
@@ -349,7 +355,7 @@ def analytics_api():
         'status_counts': [dict(r) for r in status_counts]
     })
 
-# ----------------- USER ORDER DETAIL (ADMIN) -----------------
+# ----------------- ORDER DETAIL (ADMIN) -----------------
 @app.route('/admin/order/<int:order_id>')
 @admin_required
 def admin_order_detail(order_id):
