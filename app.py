@@ -270,26 +270,10 @@ def admin_users():
     conn.close()
 
     return render_template("admin_users.html", users=users)
-@app.route("/admin")
-def admin():
-    conn = sqlite3.connect('orders.db')
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-    # get users
-    cur.execute("SELECT * FROM users")
-    users = cur.fetchall()
-
-    # get orders
-    cur.execute("SELECT * FROM orders")
-    orders = cur.fetchall()
-
-    conn.close()
-
-    return render_template("admin.html", users=users, orders=orders)
 
 
 # ----------------- RUN -----------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+
