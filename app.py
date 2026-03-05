@@ -197,15 +197,99 @@ def update_status(order_id):
 
     return redirect('/admin')
 
+
+@app.route('/password', methods=['GET','POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        print("Email entered:", email) 
+
+        conn = sqlite3.connect('orders.db')
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM users WHERE email=?", (email,))
+        user = cursor.fetchone()
+        print("User found:", user)
+        
+
+        conn.close()
+        
+
+        if user:
+            session['reset_user'] = email
+            return redirect(url_for('reset_password'))
+        else:
+            return "User not found"
+
+    return render_template('password.html')
+@app.route('/reset_password', methods=['GET','POST'])
+def reset_password():
+
+    if 'reset_user' not in session:
+        return redirect('/login')
+
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        hashed_password = generate_password_hash(new_password)
+
+        conn = sqlite3.connect('orders.db')
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "UPDATE users SET password=? WHERE email=?",
+            (hashed_password, session['reset_user'])
+        )
+
+        conn.commit()
+        conn.close()
+
+        session.pop('reset_user', None)
+
+        return redirect('/login')
+
+    return render_template('reset_password.html')
+conn = sqlite3.connect('orders.db')
+cursor = conn.cursor()
+
+cursor.execute("SELECT id, name, email FROM users")
+print(cursor.fetchall())
+
+conn.close()
+@app.route('/admin_users')
+def admin_users():
+
+    if 'user_id' not in session or session.get('is_admin') != 1:
+        return redirect('/')
+
+    conn = sqlite3.connect('orders.db')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, name, email FROM users")
+    users = cursor.fetchall()
+
+    conn.close()
+
+    return render_template("admin_users.html", users=users)
+@app.route("/admin")
+def admin():
+    conn = sqlite3.connect('orders.db')
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # get users
+    cur.execute("SELECT * FROM users")
+    users = cur.fetchall()
+
+    # get orders
+    cur.execute("SELECT * FROM orders")
+    orders = cur.fetchall()
+
+    conn.close()
+
+    return render_template("admin.html", users=users, orders=orders)
+
+
 # ----------------- RUN -----------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-@app.route('/make_admin')
-def make_admin():
-    conn = sqlite3.connect('orders.db')
-    cursor = conn.cursor()
-    cursor.execute("UPDATE users SET is_admin=1 WHERE id=1")
-    conn.commit()
-    conn.close()
-    return "Admin updated"
