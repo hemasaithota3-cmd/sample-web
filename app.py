@@ -40,6 +40,18 @@ def init_db():
     conn.close()
 
 init_db()
+@app.route('/make_admin')
+def make_admin():
+
+    conn = sqlite3.connect('orders.db')
+    cursor = conn.cursor()
+
+    cursor.execute("UPDATE users SET is_admin=1 WHERE email='hemasaithota3@gmail.com'")
+
+    conn.commit()
+    conn.close()
+
+    return "You are now admin"
 
 # ----------------- HOME -----------------
 @app.route('/')
@@ -276,4 +288,5 @@ def admin_users():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+
 
