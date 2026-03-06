@@ -1,5 +1,4 @@
-
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
@@ -7,13 +6,14 @@ import os
 app = Flask(__name__)
 app.secret_key = "secret123"
 
+
 # ---------------- DATABASE ----------------
 def init_db():
 
     conn = sqlite3.connect("orders.db")
     cursor = conn.cursor()
 
-    # CREATE USERS TABLE
+    # USERS TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,7 +24,7 @@ def init_db():
     )
     """)
 
-    # CREATE ORDERS TABLE
+    # ORDERS TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS orders(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,8 +36,8 @@ def init_db():
     )
     """)
 
-    # CHECK ADMIN
-    cursor.execute("SELECT * FROM users WHERE email='admin@example.com'")
+    # CREATE ADMIN
+    cursor.execute("SELECT * FROM users WHERE email=?", ("admin@example.com",))
     admin = cursor.fetchone()
 
     if admin is None:
@@ -48,38 +48,14 @@ def init_db():
             ("Admin", "admin@example.com", password, 1)
         )
 
-        print("Admin created")
+        print("Admin account created")
 
     conn.commit()
     conn.close()
-    # ORDERS
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS orders(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        items TEXT,
-        total INTEGER,
-        status TEXT DEFAULT 'Pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
 
-    # CREATE ADMIN IF NOT EXISTS
-    cursor.execute("SELECT * FROM users WHERE email='admin@example.com'")
-    admin = cursor.fetchone()
-
-    if not admin:
-        password = generate_password_hash("admin123")
-        cursor.execute(
-            "INSERT INTO users (name,email,password,is_admin) VALUES (?,?,?,?)",
-            ("Admin","admin@example.com",password,1)
-        )
-        print("Admin created")
-
-    conn.commit()
-    conn.close()
 
 init_db()
+
 
 # ---------------- HOME ----------------
 @app.route("/")
@@ -88,11 +64,15 @@ def home():
     if "user_id" not in session:
         return redirect("/login")
 
-    return render_template("product.html", user=session["user_name"], is_admin=session["is_admin"])
+    return render_template(
+        "product.html",
+        user=session["user_name"],
+        is_admin=session["is_admin"]
+    )
 
 
 # ---------------- REGISTER ----------------
-@app.route("/register", methods=["GET","POST"])
+@app.route("/register", methods=["GET", "POST"])
 def register():
 
     if request.method == "POST":
@@ -107,7 +87,7 @@ def register():
         try:
             cursor.execute(
                 "INSERT INTO users(name,email,password) VALUES(?,?,?)",
-                (name,email,password)
+                (name, email, password)
             )
             conn.commit()
         except:
@@ -121,7 +101,7 @@ def register():
 
 
 # ---------------- LOGIN ----------------
-@app.route("/login", methods=["GET","POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
 
     if request.method == "POST":
@@ -137,7 +117,7 @@ def login():
 
         conn.close()
 
-        if user and check_password_hash(user[3],password):
+        if user and check_password_hash(user[3], password):
 
             session["user_id"] = user[0]
             session["user_name"] = user[1]
@@ -145,7 +125,7 @@ def login():
 
             return redirect("/")
 
-        return "Invalid Login"
+        return "Invalid login"
 
     return render_template("login.html")
 
@@ -173,7 +153,7 @@ def place_order():
 
     cursor.execute(
         "INSERT INTO orders(user_id,items,total) VALUES(?,?,?)",
-        (session["user_id"],items,total)
+        (session["user_id"], items, total)
     )
 
     conn.commit()
@@ -185,6 +165,9 @@ def place_order():
 # ---------------- MY ORDERS ----------------
 @app.route("/my_orders")
 def my_orders():
+
+    if "user_id" not in session:
+        return redirect("/login")
 
     conn = sqlite3.connect("orders.db")
     cursor = conn.cursor()
@@ -198,7 +181,7 @@ def my_orders():
 
     conn.close()
 
-    return render_template("my_orders.html",orders=orders)
+    return render_template("my_orders.html", orders=orders)
 
 
 # ---------------- ADMIN DASHBOARD ----------------
@@ -212,8 +195,9 @@ def admin():
     cursor = conn.cursor()
 
     cursor.execute("""
-    SELECT orders.id, users.name, users.email, orders.items,
-           orders.total, orders.status, orders.created_at
+    SELECT orders.id, users.name, users.email,
+           orders.items, orders.total,
+           orders.status, orders.created_at
     FROM orders
     JOIN users ON orders.user_id = users.id
     """)
@@ -225,7 +209,7 @@ def admin():
 
     conn.close()
 
-    return render_template("admin.html",orders=orders,users=users)
+    return render_template("admin.html", orders=orders, users=users)
 
 
 # ---------------- UPDATE ORDER STATUS ----------------
@@ -239,7 +223,7 @@ def update_status(id):
 
     cursor.execute(
         "UPDATE orders SET status=? WHERE id=?",
-        (status,id)
+        (status, id)
     )
 
     conn.commit()
@@ -249,7 +233,7 @@ def update_status(id):
 
 
 # ---------------- PASSWORD RESET ----------------
-@app.route("/password", methods=["GET","POST"])
+@app.route("/password", methods=["GET", "POST"])
 def forgot_password():
 
     if request.method == "POST":
@@ -273,7 +257,7 @@ def forgot_password():
     return render_template("password.html")
 
 
-@app.route("/reset_password", methods=["GET","POST"])
+@app.route("/reset_password", methods=["GET", "POST"])
 def reset_password():
 
     if "reset_user" not in session:
@@ -281,14 +265,14 @@ def reset_password():
 
     if request.method == "POST":
 
-        password = generate_password_hash(request.form["new_password"])
+        new_password = generate_password_hash(request.form["new_password"])
 
         conn = sqlite3.connect("orders.db")
         cursor = conn.cursor()
 
         cursor.execute(
             "UPDATE users SET password=? WHERE email=?",
-            (password,session["reset_user"])
+            (new_password, session["reset_user"])
         )
 
         conn.commit()
@@ -303,8 +287,6 @@ def reset_password():
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
-    app.run(debug=True)
 
-
-
-
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
