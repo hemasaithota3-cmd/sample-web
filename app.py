@@ -9,10 +9,11 @@ app.secret_key = "secret123"
 
 # ---------------- DATABASE ----------------
 def init_db():
+
     conn = sqlite3.connect("orders.db")
     cursor = conn.cursor()
 
-    # USERS TABLE
+    # CREATE USERS TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,7 +24,7 @@ def init_db():
     )
     """)
 
-    # ORDERS TABLE
+    # CREATE ORDERS TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS orders(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,17 +36,19 @@ def init_db():
     )
     """)
 
-    # CREATE ADMIN IF NOT EXISTS
+    # CHECK ADMIN
     cursor.execute("SELECT * FROM users WHERE email='admin@example.com'")
     admin = cursor.fetchone()
 
-    if not admin:
+    if admin is None:
         password = generate_password_hash("admin123")
+
         cursor.execute(
             "INSERT INTO users (name,email,password,is_admin) VALUES (?,?,?,?)",
-            ("Admin","admin@example.com",password,1)
+            ("Admin", "admin@example.com", password, 1)
         )
-        print("Admin user created")
+
+        print("Admin created")
 
     conn.commit()
     conn.close()
@@ -301,6 +304,7 @@ def reset_password():
 # ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
