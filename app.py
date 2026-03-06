@@ -36,11 +36,12 @@ def init_db():
     )
     """)
 
-    # CREATE ADMIN
+    # CREATE ADMIN IF NOT EXISTS
     cursor.execute("SELECT * FROM users WHERE email=?", ("admin@example.com",))
     admin = cursor.fetchone()
 
     if admin is None:
+
         password = generate_password_hash("admin123")
 
         cursor.execute(
@@ -136,6 +137,16 @@ def logout():
 
     session.clear()
     return redirect("/login")
+
+
+# ---------------- CART PAGE ----------------
+@app.route("/cart")
+def cart():
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    return render_template("cart.html")
 
 
 # ---------------- PLACE ORDER ----------------
@@ -283,30 +294,10 @@ def reset_password():
         return redirect("/login")
 
     return render_template("reset_password.html")
-@app.route("/my_orders")
-def my_orders():
 
-    conn = sqlite3.connect("orders.db")
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM orders")
-
-    orders = cursor.fetchall()
-
-    conn.close()
-
-    return render_template("my_orders.html", orders=orders)
-
-
-@app.route("/cart")
-def cart():
-    return render_template("cart.html")    
-  
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
-
