@@ -102,15 +102,15 @@ def register():
 
 
 # ---------------- LOGIN ----------------
-@app.route("/login", methods=["GET", "POST"])
+@app.route('/login', methods=['GET','POST'])
 def login():
 
-    if request.method == "POST":
+    if request.method == 'POST':
 
-        email = request.form["email"]
-        password = request.form["password"]
+        email = request.form['email']
+        password = request.form['password']
 
-        conn = sqlite3.connect("orders.db")
+        conn = sqlite3.connect('orders.db')
         cursor = conn.cursor()
 
         cursor.execute("SELECT * FROM users WHERE email=?", (email,))
@@ -118,15 +118,19 @@ def login():
 
         conn.close()
 
-        if user and check_password_hash(user[3], password):
+        # EMAIL NOT FOUND
+        if not user:
+            return render_template("login.html", error="Email not registered")
 
-            session["user_id"] = user[0]
-            session["user_name"] = user[1]
-            session["is_admin"] = user[4]
+        # PASSWORD WRONG
+        if not check_password_hash(user[3], password):
+            return render_template("login.html", error="Wrong password")
 
-            return redirect("/")
+        # LOGIN SUCCESS
+        session['user_id'] = user[0]
+        session['email'] = user[2]
 
-        return "Invalid login"
+        return redirect("/")
 
     return render_template("login.html")
 
@@ -301,3 +305,4 @@ if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
