@@ -35,11 +35,17 @@ def init_db():
     )
     """)
 
-    # --- DATABASE FIX ---
-    try:
-        cursor.execute("ALTER TABLE orders ADD COLUMN status TEXT DEFAULT 'Pending'")
-    except:
-        pass
+    # CREATE ADMIN IF NOT EXISTS
+    cursor.execute("SELECT * FROM users WHERE email='admin@example.com'")
+    admin = cursor.fetchone()
+
+    if not admin:
+        password = generate_password_hash("admin123")
+        cursor.execute(
+            "INSERT INTO users (name,email,password,is_admin) VALUES (?,?,?,?)",
+            ("Admin","admin@example.com",password,1)
+        )
+        print("Admin user created")
 
     conn.commit()
     conn.close()
@@ -295,5 +301,6 @@ def reset_password():
 # ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
