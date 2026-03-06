@@ -55,7 +55,7 @@ init_db()
 def home():
     if 'user_id' not in session:
         return redirect('/login')
-    return render_template('product.html', user=session.get('user_name'))
+    return render_template('product.html', user=session.get('user_name'), is_admin=session.get('is_admin'))
 
 # ----------------- REGISTER -----------------
 @app.route('/register', methods=['GET', 'POST'])
