@@ -283,6 +283,25 @@ def reset_password():
         return redirect("/login")
 
     return render_template("reset_password.html")
+    @app.route("/cart")
+def cart():
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect("orders.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT id,items,total,status,created_at FROM orders WHERE user_id=?",
+        (session["user_id"],)
+    )
+
+    orders = cursor.fetchall()
+
+    conn.close()
+
+    return render_template("my_orders.html", orders=orders)
 
 
 # ---------------- RUN ----------------
@@ -290,3 +309,4 @@ if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
