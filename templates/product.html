@@ -148,6 +148,9 @@
         <img src="C:\Users\hemas\Pictures\Screenshots\Screenshot 2026-01-31 135632.png" alt="logo">
 
         <a href="#">Home</a>
+        {% if is_admin == 1 %}
+    <a href="/admin" class="btn btn-primary">Admin Panel</a>
+{% endif %}
 
         <input type="text" placeholder="Search..." id="searchinput" onkeyup="searchitem()">
 
@@ -362,4 +365,5 @@
 </script>
 
 </body></html>
+
 
