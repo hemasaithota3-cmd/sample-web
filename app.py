@@ -212,7 +212,7 @@ def update_status(order_id):
 
 
 # ---------------- FORGOT PASSWORD ----------------
-@app.route("/forgot_password", methods=["GET","POST"])
+@app.route("/password", methods=["GET","POST"])
 def forgot_password():
 
     if request.method == "POST":
@@ -233,7 +233,7 @@ def forgot_password():
 
         return "User not found"
 
-    return render_template("forgot_password.html")
+    return render_template("password.html")
 
 
 # ---------------- RESET PASSWORD ----------------
@@ -271,3 +271,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT",10000))
 
     app.run(host="0.0.0.0", port=port)
+
