@@ -2,17 +2,16 @@ from flask import Flask, render_template, request, redirect, session, url_for
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
-import datetime
 
 app = Flask(__name__, static_folder='public')
 app.secret_key = os.environ.get("SECRET_KEY", "devsecretkey")
 
-# ----------------- DATABASE -----------------
+# ----------------- DATABASE INIT -----------------
 def init_db():
     conn = sqlite3.connect('orders.db')
     cursor = conn.cursor()
 
-    # USERS
+    # USERS TABLE
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,7 +22,7 @@ def init_db():
         )
     ''')
 
-    # ORDERS
+    # ORDERS TABLE
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,6 +34,16 @@ def init_db():
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
     ''')
+
+    # Auto-create initial admin if none exists
+    cursor.execute("SELECT * FROM users WHERE is_admin=1")
+    if not cursor.fetchone():
+        admin_password = generate_password_hash('admin123')
+        cursor.execute(
+            "INSERT INTO users (name, email, password, is_admin) VALUES (?, ?, ?, ?)"
+            , ('Admin', 'admin@example.com', admin_password, 1)
+        )
+        print("✅ Admin user created: admin@example.com / admin123")
 
     conn.commit()
     conn.close()
@@ -48,13 +57,6 @@ def home():
         return redirect('/login')
     return render_template('product.html', user=session.get('user_name'))
 
-# ----------------- CART -----------------
-@app.route('/cart')
-def cart():
-    if 'user_id' not in session:
-        return redirect('/login')
-    return render_template('cart.html')
-
 # ----------------- REGISTER -----------------
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -65,14 +67,13 @@ def register():
 
         conn = sqlite3.connect('orders.db')
         cursor = conn.cursor()
-
         try:
             cursor.execute(
-                "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-                (name, email, password)
+                "INSERT INTO users (name, email, password) VALUES (?, ?, ?)"
+                , (name, email, password)
             )
             conn.commit()
-        except:
+        except sqlite3.IntegrityError:
             conn.close()
             return render_template("register.html", error="Email already exists")
 
@@ -102,13 +103,20 @@ def login():
         else:
             return render_template("login.html", error="Invalid email or password")
 
-    return render_template("login.html")
+    return render_template('login.html')
 
 # ----------------- LOGOUT -----------------
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect('/login')
+
+# ----------------- CART -----------------
+@app.route('/cart')
+def cart():
+    if 'user_id' not in session:
+        return redirect('/login')
+    return render_template('cart.html')
 
 # ----------------- PLACE ORDER -----------------
 @app.route('/place_order', methods=['POST'])
@@ -126,17 +134,13 @@ def place_order():
     if payment_status == "Success":
         conn = sqlite3.connect('orders.db')
         cursor = conn.cursor()
-
         cursor.execute(
-            "INSERT INTO orders (user_id, items, total) VALUES (?, ?, ?)",
-            (user_id, items, total)
+            "INSERT INTO orders (user_id, items, total) VALUES (?, ?, ?)"
+            , (user_id, items, total)
         )
-
         conn.commit()
         conn.close()
-
         print(f"📧 Email sent to {session['user_name']} - Order Confirmed!")
-
         return render_template("order_success.html")
 
     return "Payment Failed"
@@ -149,12 +153,10 @@ def my_orders():
 
     conn = sqlite3.connect('orders.db')
     cursor = conn.cursor()
-
     cursor.execute(
-        "SELECT id, items, total, status, created_at FROM orders WHERE user_id=? ORDER BY created_at DESC",
-        (session['user_id'],)
+        "SELECT id, items, total, status, created_at FROM orders WHERE user_id=? ORDER BY created_at DESC"
+        , (session['user_id'],)
     )
-
     orders = cursor.fetchall()
     conn.close()
 
@@ -168,27 +170,27 @@ def admin_dashboard():
 
     conn = sqlite3.connect('orders.db')
     cursor = conn.cursor()
-
     cursor.execute('''
         SELECT orders.id, users.name, users.email, orders.items, orders.total, orders.status, orders.created_at
         FROM orders
         JOIN users ON orders.user_id = users.id
         ORDER BY orders.created_at DESC
     ''')
-
     orders = cursor.fetchall()
+
+    cursor.execute("SELECT id, name, email, is_admin FROM users")
+    users = cursor.fetchall()
+
     conn.close()
+    return render_template('admin.html', orders=orders, users=users)
 
-    return render_template('admin.html', orders=orders)
-
-# ----------------- UPDATE ORDER STATUS (ADMIN) -----------------
+# ----------------- UPDATE ORDER STATUS -----------------
 @app.route('/update_status/<int:order_id>', methods=['POST'])
 def update_status(order_id):
     if 'user_id' not in session or session.get('is_admin') != 1:
         return redirect('/')
 
     new_status = request.form.get('status')
-
     conn = sqlite3.connect('orders.db')
     cursor = conn.cursor()
     cursor.execute("UPDATE orders SET status=? WHERE id=?", (new_status, order_id))
@@ -197,23 +199,16 @@ def update_status(order_id):
 
     return redirect('/admin')
 
-
+# ----------------- PASSWORD RESET -----------------
 @app.route('/password', methods=['GET','POST'])
 def forgot_password():
     if request.method == 'POST':
         email = request.form.get('email')
-        print("Email entered:", email) 
-
         conn = sqlite3.connect('orders.db')
         cursor = conn.cursor()
-
         cursor.execute("SELECT * FROM users WHERE email=?", (email,))
         user = cursor.fetchone()
-        print("User found:", user)
-        
-
         conn.close()
-        
 
         if user:
             session['reset_user'] = email
@@ -222,74 +217,26 @@ def forgot_password():
             return "User not found"
 
     return render_template('password.html')
+
 @app.route('/reset_password', methods=['GET','POST'])
 def reset_password():
-
     if 'reset_user' not in session:
         return redirect('/login')
 
     if request.method == 'POST':
         new_password = request.form.get('new_password')
         hashed_password = generate_password_hash(new_password)
-
         conn = sqlite3.connect('orders.db')
         cursor = conn.cursor()
-
-        cursor.execute(
-            "UPDATE users SET password=? WHERE email=?",
-            (hashed_password, session['reset_user'])
-        )
-
+        cursor.execute("UPDATE users SET password=? WHERE email=?", (hashed_password, session['reset_user']))
         conn.commit()
         conn.close()
-
         session.pop('reset_user', None)
-
         return redirect('/login')
 
     return render_template('reset_password.html')
-conn = sqlite3.connect('orders.db')
-cursor = conn.cursor()
-
-cursor.execute("SELECT id, name, email FROM users")
-print(cursor.fetchall())
-
-conn.close()
-@app.route('/admin_users')
-def admin_users():
-
-    if 'user_id' not in session or session.get('is_admin') != 1:
-        return redirect('/')
-
-    conn = sqlite3.connect('orders.db')
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT id, name, email FROM users")
-    users = cursor.fetchall()
-
-    conn.close()
-
-    return render_template("admin_users.html", users=users)
-@app.route("/admin")
-def admin():
-    conn = sqlite3.connect('orders.db')
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-    # get users
-    cur.execute("SELECT * FROM users")
-    users = cur.fetchall()
-
-    # get orders
-    cur.execute("SELECT * FROM orders")
-    orders = cur.fetchall()
-
-    conn.close()
-
-    return render_template("admin.html", users=users, orders=orders)
-
 
 # ----------------- RUN -----------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)
