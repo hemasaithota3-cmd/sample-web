@@ -173,7 +173,7 @@ def admin_dashboard():
     cursor.execute('''
         SELECT orders.id, users.name, users.email, orders.items, orders.total, orders.status, orders.created_at
         FROM orders
-        JOIN users ON orders.user_id = users.id
+        LEFT JOIN users ON orders.user_id = users.id
         ORDER BY orders.created_at DESC
     ''')
     orders = cursor.fetchall()
@@ -240,3 +240,4 @@ def reset_password():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port, debug=True)
+
