@@ -105,16 +105,16 @@
     <h1><i>⚡Welcome back to Zepto Clone</i></h1>
 
     <!-- IMPORTANT: Flask Form -->
-    <form method="POST" action="/login">
+    <form method="POST" action="/login" novalidate>
 
         <label>Email</label>
-        <input type="text" name="email" placeholder="enter your email..." required>
+        <input type="text" name="email" placeholder="enter your email..." >
 
         <br><br>
 
         <label>Password</label>
         <div class="password-box">
-            <input type="password" name="password" id="password" placeholder="enter your password..." required>
+            <input type="password" name="password" id="password" placeholder="enter your password..." >
             <span class="eye" onclick="togglePassword()">👁️</span>
         </div>
         <a href="/password">Forgot Password?</a>
@@ -153,5 +153,6 @@ function togglePassword() {
 
 </body>
 </html>
+
 
 
