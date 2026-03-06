@@ -12,7 +12,7 @@ def init_db():
     conn = sqlite3.connect("orders.db")
     cursor = conn.cursor()
 
-    # USERS
+    # USERS TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,12 +22,27 @@ def init_db():
         is_admin INTEGER DEFAULT 0
     )
     """)
-    # FIX OLD DATABASE (ADD STATUS COLUMN IF MISSING)
-try:
-    cursor.execute("ALTER TABLE orders ADD COLUMN status TEXT DEFAULT 'Pending'")
-except:
-    pass
 
+    # ORDERS TABLE
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS orders(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        items TEXT,
+        total INTEGER,
+        status TEXT DEFAULT 'Pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # --- DATABASE FIX ---
+    try:
+        cursor.execute("ALTER TABLE orders ADD COLUMN status TEXT DEFAULT 'Pending'")
+    except:
+        pass
+
+    conn.commit()
+    conn.close()
     # ORDERS
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS orders(
@@ -280,4 +295,5 @@ def reset_password():
 # ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(debug=True)
+
 
