@@ -22,6 +22,11 @@ def init_db():
         is_admin INTEGER DEFAULT 0
     )
     """)
+    # FIX OLD DATABASE (ADD STATUS COLUMN IF MISSING)
+try:
+    cursor.execute("ALTER TABLE orders ADD COLUMN status TEXT DEFAULT 'Pending'")
+except:
+    pass
 
     # ORDERS
     cursor.execute("""
@@ -275,3 +280,4 @@ def reset_password():
 # ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(debug=True)
+
